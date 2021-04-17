@@ -10,8 +10,13 @@ import lombok.NonNull;
 // GETでid指定しないエンドポイントでの返却レスポンス
 
 @Data
-public class GetsResponse {
+public class GetsUsersResponse {
 	
+	public GetsUsersResponse() {
+
+	}
+
 	@NonNull
-	List<User> userList; 
+	List<User> userList;
+	
 }

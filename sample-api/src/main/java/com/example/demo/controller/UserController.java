@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.model.User;
 import com.example.demo.model.form.UserPostForm;
 import com.example.demo.model.form.UserPutForm;
-import com.example.demo.model.response.GetsResponse;
+import com.example.demo.model.response.GetsUsersResponse;
 import com.example.demo.model.response.UserResponse;
 import com.example.demo.service.ErrorService;
 import com.example.demo.service.MyBatisService;
 import com.example.demo.validation.ControllerValidation;
+
+import lombok.NonNull;
 
 @RestController
 @RequestMapping("/v1/users")
@@ -41,99 +44,101 @@ public class UserController {
 	ErrorService errorService;
 	
 	@GetMapping
-	public ResponseEntity<Object> getUsers(
-			@RequestParam(name = "name", required = false) String name
-			) {
+	public ResponseEntity<GetsUsersResponse> getUsers() {
 				
-		if(!Objects.isNull(name)) {
-			return new ResponseEntity<>(
-					new GetsResponse(myBatisService.getUsersByName(name)), new HttpHeaders(), HttpStatus.OK);			
-		}
-		
 		try {
 			return new ResponseEntity<>(
-					new GetsResponse(myBatisService.getUsers()), new HttpHeaders(), HttpStatus.OK);
+					this.returnGetsUsersResponseSetting(myBatisService.getUsers()), new HttpHeaders(), HttpStatus.OK);
 		} catch(DataAccessException e) {
-			return new ResponseEntity<>(errorService.getInternalServerError(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<Object> getUserById(
+	public ResponseEntity<UserResponse> getUserById(
 			@PathVariable("id") String id) {
 		
 		if (!controllerValidation.isNumber(id)){
-			return new ResponseEntity<>(
-					errorService.getBadRequestError(), new HttpHeaders(), HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
 		}
 
 		try {
 			User user = myBatisService.getUserById(id);
 			
 			if(Objects.isNull(user)) {
-				return new ResponseEntity<>(
-						errorService.getNotFoundError(), new HttpHeaders(), HttpStatus.NOT_FOUND);	
+				return new ResponseEntity<>(new HttpHeaders(), HttpStatus.NOT_FOUND);	
 			}
-			return new ResponseEntity<>(
-					new UserResponse(user), new HttpHeaders(), HttpStatus.OK);
+			return new ResponseEntity<>(this.returnUserResponseSetting(user), new HttpHeaders(), HttpStatus.OK);
 		} catch(DataAccessException e) {
-			return new ResponseEntity<>(
-					errorService.getInternalServerError(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}		
 	}
 
 	@PostMapping
-	public ResponseEntity<Object> postUser(
+	public ResponseEntity<UserResponse> postUser(
 			@RequestBody @Validated UserPostForm postForm) {
 		
 		try {
 			return new ResponseEntity<>(
-					new UserResponse(myBatisService.insertUser(postForm)), new HttpHeaders(), HttpStatus.OK);
+				this.returnUserResponseSetting(myBatisService.insertUser(postForm)), new HttpHeaders(), HttpStatus.OK);
+					
 		} catch(DataAccessException e) {
-			return new ResponseEntity<>(
-					errorService.getInternalServerError(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 	
 	@PutMapping("/{id}")
-	public ResponseEntity<Object> putUserById(
+	public ResponseEntity<UserResponse> putUserById(
 			@PathVariable("id") String id, 
 			@RequestBody UserPutForm putForm) {
 
 		if (!controllerValidation.isNumber(id)){
-			return new ResponseEntity<>(
-					errorService.getBadRequestError(), new HttpHeaders(), HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
 		}
 		
 		try {
 			return new ResponseEntity<>(
-					new UserResponse(myBatisService.updateUser(id, putForm)), new HttpHeaders(), HttpStatus.OK);
+					this.returnUserResponseSetting(myBatisService.updateUser(id, putForm)), new HttpHeaders(), HttpStatus.OK);
 		} catch(DataAccessException e) {
 			return new ResponseEntity<>(
-					errorService.getInternalServerError(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+					new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 	
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Object> deleteUserById(
+	public ResponseEntity<UserResponse> deleteUserById(
 			@PathVariable("id") String id) {
 		
 		if (!controllerValidation.isNumber(id)){
 			return new ResponseEntity<>(
-					errorService.getBadRequestError(), new HttpHeaders(), HttpStatus.BAD_REQUEST);
+				new HttpHeaders(), HttpStatus.BAD_REQUEST);
 		}
 		
 		try {
 			User user = myBatisService.deleteUserById(id);
 			if(Objects.isNull(user)) {
 				return new ResponseEntity<>(
-						errorService.getNotFoundError(), new HttpHeaders(), HttpStatus.NOT_FOUND);	
+					new HttpHeaders(), HttpStatus.NOT_FOUND);	
 			}
 			return new ResponseEntity<>(
-					new UserResponse(user), new HttpHeaders(), HttpStatus.OK);
+				this.returnUserResponseSetting(user), new HttpHeaders(), HttpStatus.OK);
 		} catch(DataAccessException e) {
 			return new ResponseEntity<>(
-					errorService.getInternalServerError(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+				new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+	}
+	
+	@NonNull
+	private GetsUsersResponse returnGetsUsersResponseSetting(List<User> users) {
+		GetsUsersResponse getsUsersResponse = new GetsUsersResponse();
+		getsUsersResponse.setUserList(users);
+		return getsUsersResponse;
+	}
+	
+	@NonNull
+	private UserResponse returnUserResponseSetting(User user) {
+		UserResponse userResponse = new UserResponse();
+		userResponse.setUser(user);
+		return userResponse;
 	}
 }
